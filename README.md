@@ -4,6 +4,10 @@ A [GitHub CLI](https://cli.github.com) extension for viewing the merge queue of 
 
 ## Installation
 
+### Dependencies
+
+* [jq]
+
 ```sh
 $ gh extension install davidxia/gh-merge-queue
 
@@ -34,3 +38,5 @@ $ gh merge-queue modal-labs/modal
 
 - [gh extension docs](https://cli.github.com/manual/gh_extension)
 - [Creating GitHub CLI extensions](https://docs.github.com/en/github-cli/github-cli/creating-github-cli-extensions)
+
+[jq]: https://jqlang.org/download/
