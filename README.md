@@ -10,6 +10,8 @@ $ gh extension install davidxia/gh-merge-queue
 $ gh extension list
 NAME            REPO                     VERSION 
 gh merge-queue  davidxia/gh-merge-queue  d118d76d
+
+$ gh alias set mq merge-queue
 ```
 
 ## Usage
