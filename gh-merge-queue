@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -eq 0 ]]; then
+  nwo=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null) || {
+    echo "Error: not in a gh repo context. Usage: gh merge-queue [<org>/<repo>]" >&2
+    exit 1
+  }
+  OWNER="${nwo%%/*}"
+  REPO="${nwo##*/}"
+elif [[ $# -eq 1 && "$1" == */* ]]; then
+  OWNER="${1%%/*}"
+  REPO="${1##*/}"
+else
+  echo "Usage: gh merge-queue [<org>/<repo>]" >&2
+  exit 1
+fi
+
+response=$(gh api graphql -f query='
+  {
+    repository(owner: "'"$OWNER"'", name: "'"$REPO"'") {
+      mergeQueue(branch: "main") {
+        entries(first: 20) {
+          nodes {
+            position
+            state
+            enqueuedAt
+            estimatedTimeToMerge
+            enqueuer {
+              login
+            }
+            pullRequest {
+              number
+              title
+            }
+          }
+        }
+      }
+    }
+  }')
+
+# Check for GraphQL errors (e.g. repo not found, no permission)
+error_msg=$(echo "$response" | jq -r '.errors[0].message // empty')
+if [[ -n "$error_msg" ]]; then
+  echo "Error: $error_msg" >&2
+  exit 1
+fi
+
+# null mergeQueue means merge queue is not enabled on this repo
+if echo "$response" | jq -e '.data.repository.mergeQueue == null' > /dev/null; then
+  echo "Merge queue is not enabled for $OWNER/$REPO." >&2
+  exit 1
+fi
+
+node_count=$(echo "$response" | jq '.data.repository.mergeQueue.entries.nodes | length')
+if [[ "$node_count" -eq 0 ]]; then
+  echo "Merge queue for $OWNER/$REPO is empty."
+  exit 0
+fi
+
+echo "$response" | jq -r '
+    .data.repository.mergeQueue.entries.nodes[] |
+    . as $e |
+    (now - ($e.enqueuedAt | fromdateiso8601)) as $ago |
+    (if $ago < 60 then "\($ago | round)s ago"
+     elif $ago < 3600 then "\($ago / 60 | round)m ago"
+     else "\($ago / 3600 | round)h ago" end) as $ago_str |
+    ($e.estimatedTimeToMerge // 0) as $eta_s |
+    (if $eta_s == 0 then "unknown"
+     elif $eta_s < 60 then "\($eta_s)s"
+     elif $eta_s < 3600 then "\($eta_s / 60 | round)m"
+     else "\($eta_s / 3600 * 10 | round / 10)h" end) as $eta_str |
+    ($e.state | if . == "AWAITING_CHECKS" then "\u001b[33m\(.)\u001b[0m"
+                elif . == "MERGEABLE" then "\u001b[32m\(.)\u001b[0m"
+                else . end) as $state_str |
+    "\($e.position). #\($e.pullRequest.number) [\($state_str)] \($e.pullRequest.title)\n   by @\($e.enqueuer.login) • enqueued \($ago_str) • est. merge in \($eta_str)"
+  '
