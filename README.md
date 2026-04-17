@@ -27,11 +27,11 @@ $ gh merge-queue
 # Explicit org/repo
 $ gh merge-queue modal-labs/modal
 1. #34 [AWAITING_CHECKS] make Modal reliable
-   by @davidxia • enqueued 28m ago • est. merge in 23m
+   by @davidxia • enqueued 28m ago • est. merge in 20m
 2. #35 [MERGEABLE] Make Modal fast
-   by @AmitPr • enqueued 24m ago • est. merge in 27m
+   by @AmitPr • enqueued 24m ago • est. merge in 23m
 3. #39 [AWAITING_CHECKS] Make Modal powerful
-   by @mwaskom • enqueued 35m ago • est. merge in 20m
+   by @mwaskom • enqueued 15m ago • est. merge in 27m
 ```
 
 ## References
